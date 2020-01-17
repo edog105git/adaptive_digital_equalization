@@ -8,6 +8,7 @@ from scipy import signal
 # 0. DEFINE VARIABLES
 # ********** 0a. Constants ********** #
 j = np.complex(0, 1)
+c = 3e8              # Speed of light (m/s)
 # *********************************** #
 
 # ********** 0b. Symbol stream parameters ********** #
@@ -33,14 +34,18 @@ omega_vec = np.concatenate((omega_vec1, omega_vec2)) # Frequency vector from 0 t
 # **************************************************** #
 
 # ********** 0d. Transmitter parameters ********** #
+wavelength = 1.55e-6  # Carrier wavelength (m)
 V_pi = 4              # Modulator half-wave voltage (V)
 Tx_order = 5          # Order of Tx Bessel filter
 Ptx = 1e-3            # Total transmitted power in 2 polarizations (W)
 Tx_bandwidth = 0.8/Ts # Tx Bessel filter 3dB bandwidth (Hz)
 # ************************************************ #
 
-
-
+# ********** 0e. Fibre parameters ********** #
+D = 17*1e-6                              # Dispersion parameter (s/m^2)
+beta2 = -((wavelength**2)*D)/(2*np.pi*c) # Second derivative of beta (s^2/m)
+L_fiber = 40e3                           # Length of fiber (m)
+# ****************************************** #
 
 # 1. COMPUTE TRANSMITTED SYMBOL STREAM
 # ********** 1a. Create symbol stream (2 quadratures and 2 polarizations) ********** #
@@ -100,20 +105,38 @@ E1_tx = (np.sqrt(Ptx)/2)*E1_carved
 E2_tx = (np.sqrt(Ptx)/2)*E2_carved
 # ********************************************************************* #
 
+# 2. PROPAGATE SIGNAL THROUGH FIBRE
+# ********** 2a. Chromatic dispersion ********** #
+h_cd = np.exp(j*(1/2)*beta2*L_fiber*np.power(omega_vec, 2))
+E1_cd = np.fft.ifft(np.fft.fft(E1_tx)*h_cd)
+E2_cd = np.fft.ifft(np.fft.fft(E2_tx)*h_cd)
+
+# ********************************************** #
+
+
 # ********** FOR TESTING PURPOSES ********** #
 plt.figure()
-plt.stem(np.real(E1[0:n_step*8]))
+plt.stem(np.real(E1_tx[0:n_step*8]), label='Before CD', linefmt='b-', markerfmt='bo')
+plt.stem(np.real(E1_cd[0:n_step*8]), label='After CD', linefmt='g-', markerfmt='go')
+plt.legend()
 plt.show()
 
 plt.figure()
-plt.stem(np.imag(E1[0:n_step*8]))
+plt.stem(np.imag(E1_tx[0:n_step*8]), label='Before CD', linefmt='b-', markerfmt='bo')
+plt.stem(np.imag(E1_cd[0:n_step*8]), label='After CD', linefmt='g-', markerfmt='go')
+plt.legend()
 plt.show()
 
 plt.figure()
-plt.stem(np.real(E2[0:n_step*8]))
+plt.stem(np.real(E2_tx[0:n_step*8]), label='Before CD', linefmt='b-', markerfmt='bo')
+plt.stem(np.real(E2_cd[0:n_step*8]), label='After CD', linefmt='g-', markerfmt='go')
+plt.legend()
 plt.show()
 
 plt.figure()
-plt.stem(np.imag(E2[0:n_step*8]))
+plt.stem(np.imag(E2_tx[0:n_step*8]), label='Before CD', linefmt='b-', markerfmt='bo')
+plt.stem(np.imag(E2_cd[0:n_step*8]), label='After CD', linefmt='g-', markerfmt='go')
+plt.legend()
 plt.show()
 # ****************************************** #
+
